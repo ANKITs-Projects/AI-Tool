@@ -1,12 +1,13 @@
 import { useEffect, useState } from "react";
 import "./App.css";
 import { Answer } from "./components/Answer";
+import { QnA } from "./components/QnA";
 const API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
 const URI = import.meta.env.VITE_URI;
 
 function App() {
   const [query, setQuery] = useState("");
-  const [result, setResult] = useState(undefined);
+  const [result, setResult] = useState([]);
 
   const payload = {
     contents: [
@@ -33,9 +34,10 @@ function App() {
       const data = await response.json();
 
       if (data.candidates && data.candidates[0].content.parts[0].text) {
-        let dataStr = data.candidates[0].content.parts[0].text;
-        dataStr = dataStr.split("* ").map((item) => item.trim());
-        setResult(dataStr);
+        let response = data.candidates[0].content.parts[0].text;
+        response = response.split("* ").map((item) => item.trim());
+        const res = { query, response };
+        setResult([...result, res]);
       } else {
         console.log("Unexpected response format:", data);
       }
@@ -43,21 +45,32 @@ function App() {
       console.error("Fetch Error:", error);
     }
   };
+  useEffect(() => {
+    setResult([
+      {
+        query: "Hello how are you",
+        response: ["Hey what's up how can i hellp you"],
+      },
+      { query: "Hello", response: ["Hey what's up how can i hellp you"] },
+    ]);
+  }, []);
 
+  
   return (
     <div className="grid grid-cols-5 h-screen text-center">
       <div className="col-span-1 bg-zinc-700"></div>
 
       <div className="col-span-4 p-5 h-screen flex flex-col ">
         <div className="container  flex-1 overflow-y-auto overflow-x-hidden no-scrollbar">
+          <h1 className="text-2xl text-zinc-100 font-bold mb-3 ">Hello, how cay I help you!</h1>
           <div className="">
             <ul>
-              {result &&
-                result.map((e, i) => {
+              {result.length &&
+                result.map((qna, i) => {
                   return (
-                    <li key={Date.now()} className="text-left">
-                      <Answer ans={e} index={i} totalRes = {result.length}/>
-                    </li>
+                    <ul  key={Date.now() + i}>
+                      <QnA qna = {qna} i ={i}/>
+                    </ul>
                   );
                 })}
             </ul>
