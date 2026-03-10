@@ -8,6 +8,16 @@ const URI = import.meta.env.VITE_URI;
 function App() {
   const [query, setQuery] = useState("");
   const [result, setResult] = useState([]);
+  const [resentHistory, setResentHistory] = useState(() => {
+    const saved = localStorage.getItem("history");
+    // Check if it exists AND is valid JSON array
+    try {
+      const parsed = JSON.parse(saved);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch (e) {
+      return [];
+    }
+  });
 
   const payload = {
     contents: [
@@ -21,8 +31,30 @@ function App() {
     ],
   };
 
+  const addToHistory = () => {
+    if (!query) return;
+
+    const saved = localStorage.getItem("history");
+    let history = [];
+
+    try {
+      const parsed = JSON.parse(saved);
+      history = Array.isArray(parsed) ? parsed : [];
+    } catch (e) {
+      history = [];
+    }
+
+    // Add new query, keep unique values, and limit to 10 items
+    const updatedHistory = [...new Set([query, ...history])].slice(0, 10);
+
+    localStorage.setItem("history", JSON.stringify(updatedHistory));
+    setResentHistory(updatedHistory);
+  };
+
   const askQuery = async () => {
     try {
+      setQuery("")
+      addToHistory();
       const response = await fetch(URI + API_KEY, {
         method: "POST",
         headers: {
@@ -45,6 +77,7 @@ function App() {
       console.error("Fetch Error:", error);
     }
   };
+
   useEffect(() => {
     setResult([
       {
@@ -55,21 +88,37 @@ function App() {
     ]);
   }, []);
 
-  
   return (
     <div className="grid grid-cols-5 h-screen text-center">
-      <div className="col-span-1 bg-zinc-700"></div>
+      <div className="col-span-1 bg-zinc-700">
+        <ul>
+          {Array.isArray(resentHistory) && resentHistory.length > 0 ? (
+            resentHistory.map((ele, i) => (
+              <li
+                key={i}
+                className="p-2 hover:bg-zinc-800 rounded cursor-pointer"
+              >
+                {ele}
+              </li>
+            ))
+          ) : (
+            <p className="text-zinc-500 text-sm">No recent searches</p>
+          )}
+        </ul>
+      </div>
 
       <div className="col-span-4 p-5 h-screen flex flex-col ">
         <div className="container  flex-1 overflow-y-auto overflow-x-hidden no-scrollbar">
-          <h1 className="text-2xl text-zinc-100 font-bold mb-3 ">Hello, how cay I help you!</h1>
+          <h1 className="text-2xl text-zinc-100 font-bold mb-3 ">
+            Hello! How can I help you today?
+          </h1>
           <div className="">
             <ul>
               {result.length &&
                 result.map((qna, i) => {
                   return (
-                    <ul  key={Date.now() + i}>
-                      <QnA qna = {qna} i ={i}/>
+                    <ul key={Date.now() + i}>
+                      <QnA qna={qna} i={i} />
                     </ul>
                   );
                 })}
