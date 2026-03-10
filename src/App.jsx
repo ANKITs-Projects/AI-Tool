@@ -1,24 +1,86 @@
-import './App.css'
+import { useEffect, useState } from "react";
+import "./App.css";
+import { Answer } from "./components/Answer";
+const API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
+const URI = import.meta.env.VITE_URI;
 
 function App() {
+  const [query, setQuery] = useState("");
+  const [result, setResult] = useState(undefined);
+
+  const payload = {
+    contents: [
+      {
+        parts: [
+          {
+            text: query,
+          },
+        ],
+      },
+    ],
+  };
+
+  const askQuery = async () => {
+    try {
+      const response = await fetch(URI + API_KEY, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await response.json();
+
+      if (data.candidates && data.candidates[0].content.parts[0].text) {
+        let dataStr = data.candidates[0].content.parts[0].text;
+        dataStr = dataStr.split("* ").map((item) => item.trim());
+        setResult(dataStr);
+      } else {
+        console.log("Unexpected response format:", data);
+      }
+    } catch (error) {
+      console.error("Fetch Error:", error);
+    }
+  };
 
   return (
-    <div className='grid grid-cols-5 h-screen text-center'>
-      <div className='col-span-1 bg-zinc-700'>
-      
-      </div>
+    <div className="grid grid-cols-5 h-screen text-center">
+      <div className="col-span-1 bg-zinc-700"></div>
 
-      <div className='col-span-4 p-10'>
-        <div className='container h-110'>
-
+      <div className="col-span-4 p-5 h-screen flex flex-col ">
+        <div className="container  flex-1 overflow-y-auto overflow-x-hidden no-scrollbar">
+          <div className="">
+            <ul>
+              {result &&
+                result.map((e, i) => {
+                  return (
+                    <li key={Date.now()} className="text-left">
+                      <Answer ans={e} index={i} totalRes = {result.length}/>
+                    </li>
+                  );
+                })}
+            </ul>
+          </div>
         </div>
-        <div className='bg-zinc-700 w-1/2 text-white m-auto p-1 pr-5 h-16 rounded-4xl border-zinc-600 border flex'>
-          <input type="text" placeholder='Ask me anything' className='w-full h-full p-3 outline-none'/>
-          <button>Ask</button>
+
+        <div className=" flex justify-center items-center h-24">
+          <div className="bg-zinc-700 w-1/2 text-zinc-300 p-1 pr-5 h-16 rounded-4xl border-zinc-600 border flex">
+            <input
+              type="text"
+              placeholder="Ask me anything"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              className="w-full h-full p-3 outline-none"
+            />
+            <button onClick={askQuery} className="cursor-pointer">
+              Ask
+            </button>
+          </div>
         </div>
       </div>
     </div>
-  )
+  );
 }
 
-export default App
+export default App;
